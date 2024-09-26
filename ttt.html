@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English Learning Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+    }
+    h1 {
+      font-size: 36px;
+    }
+    .calendar {
+      margin: 20px auto;
+      width: 300px;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+    .day, .week-day {
+      padding: 10px;
+      border: 1px solid #ddd;
+      position: relative;
+      height: 50px;
+    }
+    .week-day {
+      font-weight: bold;
+      background-color: #f0f0f0;
+    }
+    .today {
+      background-color: #228B22;
+      color: white;
+      border-radius: 50%;
+    }
+    .checked {
+      border-radius: 50%;
+      border: 2px solid lightgreen;
+      position: relative;
+    }
+    .checked::after {
+      content: '✔';
+      font-size: 24px;
+      font-weight: bold;
+      color: green;
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+    }
+    .timer {
+      font-size: 48px;
+      margin: 20px 0;
+    }
+    .progress-bar {
+      width: 100%;
+      background-color: #f3f3f3;
+      border-radius: 25px;
+      margin: 20px 0;
+      height: 30px;
+    }
+    .progress {
+      height: 100%;
+      background-color: #4CAF50;
+      border-radius: 25px;
+      text-align: right;
+      padding-right: 10px;
+      color: white;
+      font-weight: bold;
+    }
+    .goal {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 18px;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #ccc;
+    }
+    .completed-message {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 20px;
+      color: #4CAF50;
+    }
+  </style>
+</head>
+<body>
+  <h1>English Learning Tracker</h1>
+  
+  <!-- Calendar Section -->
+  <div class="calendar" id="calendar">
+    <!-- Weekdays Row -->
+    <div class="week-day">Mon</div>
+    <div class="week-day">Tue</div>
+    <div class="week-day">Wed</div>
+    <div class="week-day">Thu</div>
+    <div class="week-day">Fri</div>
+    <div class="week-day">Sat</div>
+    <div class="week-day">Sun</div>
+  </div>
+  
+  <!-- Timer Display -->
+  <div class="timer" id="timer">00:00</div>
+  
+  <!-- Progress Bar -->
+  <div class="progress-bar">
+    <div class="progress" id="progress" style="width: 0%;">0%</div>
+  </div>
+  <div class="goal">
+    <span>Learning Progress</span>
+    <span>25 mins 🏆</span>
+  </div>
+  
+  <!-- Start Button -->
+  <button id="startButton" onclick="startTimer()">Start Learning</button>
+  
+  <!-- Completed Message (hidden by default) -->
+  <div id="completedMessage" class="completed-message" style="display:none;">
+    Completed! Well done, Wendy!
+  </div>
+
+  <!-- Script for Timer and Calendar -->
+  <script>
+    let timer;
+    let secondsElapsed = 0;
+    const totalTime = 1500; // 25 minutes in seconds
+    let completedDays = JSON.parse(localStorage.getItem('completedDays')) || []; // Load completed days
+
+    const today = new Date();
+    const dayOfMonth = today.getDate();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+
+    function startTimer() {
+      document.getElementById('startButton').disabled = true;
+      timer = setInterval(() => {
+        secondsElapsed++;
+        updateTimer();
+        updateProgressBar();
+
+        // Stop after 25 minutes
+        if (secondsElapsed === totalTime) {
+          clearInterval(timer);
+          markTodayComplete();
+          showCompletionMessage();
+        }
+      }, 1000);
+    }
+
+    function updateTimer() {
+      let minutes = Math.floor(secondsElapsed / 60);
+      let seconds = secondsElapsed % 60;
+
+      document.getElementById('timer').textContent = 
+        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function updateProgressBar() {
+      const percentage = (secondsElapsed / totalTime) * 100;
+      document.getElementById('progress').style.width = percentage + '%';
+      document.getElementById('progress').textContent = Math.round(percentage) + '%';
+    }
+
+    function markTodayComplete() {
+      completedDays.push(dayOfMonth);
+      localStorage.setItem('completedDays', JSON.stringify(completedDays)); // Save completion
+      generateCalendar();
+    }
+
+    function showCompletionMessage() {
+      document.getElementById('startButton').style.display = 'none'; // Hide the Start button
+      document.getElementById('completedMessage').style.display = 'block'; // Show the completion message
+    }
+
+    // Function to generate a calendar
+    function generateCalendar() {
+      const calendar = document.getElementById('calendar');
+      calendar.innerHTML = ''; // Reset calendar
+
+      const firstDayOfMonth = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      // Add weekdays header with Monday as the first day
+      const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      weekdays.forEach(weekday => {
+        const dayElement = document.createElement('div');
+        dayElement.classList.add('week-day');
+        dayElement.textContent = weekday;
+        calendar.appendChild(dayElement);
+      });
+
+      // Adjust firstDayOfMonth to account for Monday-first week
+      const adjustedFirstDay = (firstDayOfMonth + 6) % 7;
+
+      // Generate empty cells before the first day of the month
+      for (let i = 0; i < adjustedFirstDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.classList.add('day');
+        calendar.appendChild(emptyCell);
+      }
+
+      // Generate days in the month
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dayElement = document.createElement('div');
+        dayElement.classList.add('day');
+        dayElement.textContent = day;
+
+        // Highlight today
+        if (day === dayOfMonth) {
+          dayElement.classList.add('today');
+        }
+
+        // Mark completed days
+        if (completedDays.includes(day)) {
+          dayElement.classList.add('checked');
+        }
+
+        calendar.appendChild(dayElement);
+      }
+    }
+
+    // Generate the calendar on page load
+    generateCalendar();
+  </script>
+</body>
+</html>
